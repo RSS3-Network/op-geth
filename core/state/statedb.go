@@ -23,6 +23,8 @@ import (
 	"sort"
 	"time"
 
+	"golang.org/x/crypto/sha3"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
@@ -172,6 +174,15 @@ func New(root common.Hash, db Database, snaps *snapshot.Tree) (*StateDB, error) 
 	return sdb, nil
 }
 
+func GetRSS3BalanceKey(addr common.Address) common.Hash {
+	position := common.Big0
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write(common.LeftPadBytes(addr.Bytes(), 32))
+	hasher.Write(common.LeftPadBytes(position.Bytes(), 32))
+	digest := hasher.Sum(nil)
+	return common.BytesToHash(digest)
+}
+
 // StartPrefetcher initializes a new trie prefetcher to pull in nodes from the
 // state trie concurrently while the state is mutated so that when we reach the
 // commit phase, most of the needed data is already hot.
@@ -281,11 +292,9 @@ func (s *StateDB) Empty(addr common.Address) bool {
 
 // GetBalance retrieves the balance from the given address or 0 if object not found
 func (s *StateDB) GetBalance(addr common.Address) *big.Int {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.Balance()
-	}
-	return common.Big0
+	key := GetRSS3BalanceKey(addr)
+	bal := s.GetState(params.RSS3Address, key)
+	return bal.Big()
 }
 
 // GetNonce retrieves the nonce from the given address or 0 if object not found
@@ -374,25 +383,25 @@ func (s *StateDB) HasSelfDestructed(addr common.Address) bool {
 
 // AddBalance adds amount to the account associated with addr.
 func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.AddBalance(amount)
-	}
+	key := GetRSS3BalanceKey(addr)
+	value := s.GetState(params.RSS3Address, key)
+	bal := value.Big()
+	bal = bal.Add(bal, amount)
+	s.SetState(params.RSS3Address, key, common.BigToHash(bal))
 }
 
 // SubBalance subtracts amount from the account associated with addr.
 func (s *StateDB) SubBalance(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.SubBalance(amount)
-	}
+	key := GetRSS3BalanceKey(addr)
+	value := s.GetState(params.RSS3Address, key)
+	bal := value.Big()
+	bal = bal.Sub(bal, amount)
+	s.SetState(params.RSS3Address, key, common.BigToHash(bal))
 }
 
 func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.SetBalance(amount)
-	}
+	key := GetRSS3BalanceKey(addr)
+	s.SetState(params.RSS3Address, key, common.BigToHash(amount))
 }
 
 func (s *StateDB) SetNonce(addr common.Address, nonce uint64) {
