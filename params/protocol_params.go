@@ -28,7 +28,7 @@ var (
 	// The L1 portion of the transaction fee accumulates at this predeploy
 	OptimismL1FeeRecipient = common.HexToAddress("0x420000000000000000000000000000000000001A")
 	// The L2 RSS3 contract
-	RSS3Address = common.HexToAddress("0x4200000000000000000000000000000000000301")
+	RSS3Address = common.HexToAddress("0x4200000000000000000000000000000000000042")
 )
 
 const (
