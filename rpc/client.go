@@ -362,6 +362,9 @@ func (c *Client) CallContext(ctx context.Context, result interface{}, method str
 		return err
 	}
 	resp := batchresp[0]
+	if len(resp.Result) <= 20 {
+		log.Debug("RPC CallContext", "response", resp)
+	}
 	switch {
 	case resp.Error != nil:
 		return resp.Error
