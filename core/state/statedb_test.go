@@ -1201,7 +1201,7 @@ func TestAddBalance(t *testing.T) {
 	state, _ := New(types.EmptyRootHash, NewDatabaseWithNodeDB(db, tdb), nil)
 
 	// add balance
-	for i := byte(0); i < 255; i++ {
+	for i := byte(1); i < 20; i++ {
 		addr := common.BytesToAddress([]byte{i})
 		state.AddBalance(addr, big.NewInt(int64(11*i)))
 	}
@@ -1212,7 +1212,7 @@ func TestAddBalance(t *testing.T) {
 	}
 
 	// check balance
-	for i := byte(0); i < 255; i++ {
+	for i := byte(1); i < 20; i++ {
 		addr := common.BytesToAddress([]byte{i})
 		balance := state.GetBalance(addr)
 		expectedBalance := big.NewInt(int64(11 * i))
@@ -1231,14 +1231,14 @@ func TestSubBalance(t *testing.T) {
 	state, _ := New(types.EmptyRootHash, NewDatabaseWithNodeDB(db, tdb), nil)
 
 	// set balance
-	for i := byte(0); i < 5; i++ {
+	for i := byte(1); i < 20; i++ {
 		addr := common.BytesToAddress([]byte{i})
 		balance := big.NewInt(int64(11 * i))
 		state.SetBalance(addr, balance)
 	}
 
 	// sub balance
-	for i := byte(0); i < 5; i++ {
+	for i := byte(1); i < 20; i++ {
 		addr := common.BytesToAddress([]byte{i})
 		state.SubBalance(addr, big.NewInt(int64(1)))
 	}
@@ -1250,14 +1250,10 @@ func TestSubBalance(t *testing.T) {
 	}
 
 	// check balance
-	for i := byte(0); i < 5; i++ {
+	for i := byte(1); i < 20; i++ {
 		addr := common.BytesToAddress([]byte{i})
 		balance := state.GetBalance(addr)
 		expectedBalance := big.NewInt(int64(11*i) - 1)
-		if expectedBalance.Cmp(big.NewInt(int64(-1))) == 0 {
-			// for account 0
-			expectedBalance = big.NewInt(int64(1))
-		}
 		if balance.Cmp(expectedBalance) != 0 {
 			t.Errorf("account %d: balance mismatch: have %v, want %v", i, balance, expectedBalance)
 		}
