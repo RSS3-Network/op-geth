@@ -1191,3 +1191,71 @@ func TestDeleteStorage(t *testing.T) {
 		t.Fatalf("difference found:\nfast: %v\nslow: %v\n", fastRes, slowRes)
 	}
 }
+
+func TestAddBalance(t *testing.T) {
+	// Create an empty state database
+	var (
+		db  = rawdb.NewMemoryDatabase()
+		tdb = trie.NewDatabase(db, nil)
+	)
+	state, _ := New(types.EmptyRootHash, NewDatabaseWithNodeDB(db, tdb), nil)
+
+	// add balance
+	for i := byte(1); i < 20; i++ {
+		addr := common.BytesToAddress([]byte{i})
+		state.AddBalance(addr, big.NewInt(int64(11*i)))
+	}
+	// Write modifications to trie.
+	root := state.IntermediateRoot(false)
+	if err := tdb.Commit(root, false); err != nil {
+		t.Errorf("can not commit trie %v to persistent database", root.Hex())
+	}
+
+	// check balance
+	for i := byte(1); i < 20; i++ {
+		addr := common.BytesToAddress([]byte{i})
+		balance := state.GetBalance(addr)
+		expectedBalance := big.NewInt(int64(11 * i))
+		if balance.Cmp(expectedBalance) != 0 {
+			t.Errorf("account %d: balance mismatch: have %v, want %v", i, balance, expectedBalance)
+		}
+	}
+}
+
+func TestSubBalance(t *testing.T) {
+	// Create an empty state database
+	var (
+		db  = rawdb.NewMemoryDatabase()
+		tdb = trie.NewDatabase(db, nil)
+	)
+	state, _ := New(types.EmptyRootHash, NewDatabaseWithNodeDB(db, tdb), nil)
+
+	// set balance
+	for i := byte(1); i < 20; i++ {
+		addr := common.BytesToAddress([]byte{i})
+		balance := big.NewInt(int64(11 * i))
+		state.SetBalance(addr, balance)
+	}
+
+	// sub balance
+	for i := byte(1); i < 20; i++ {
+		addr := common.BytesToAddress([]byte{i})
+		state.SubBalance(addr, big.NewInt(int64(1)))
+	}
+
+	// Write modifications to trie.
+	root := state.IntermediateRoot(false)
+	if err := tdb.Commit(root, false); err != nil {
+		t.Errorf("can not commit trie %v to persistent database", root.Hex())
+	}
+
+	// check balance
+	for i := byte(1); i < 20; i++ {
+		addr := common.BytesToAddress([]byte{i})
+		balance := state.GetBalance(addr)
+		expectedBalance := big.NewInt(int64(11*i) - 1)
+		if balance.Cmp(expectedBalance) != 0 {
+			t.Errorf("account %d: balance mismatch: have %v, want %v", i, balance, expectedBalance)
+		}
+	}
+}
