@@ -306,12 +306,15 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 
 	if config.RollupSequencerHTTP != "" {
+		log.Info("Rollup sequencer RPC service enabled", "url", config.RollupSequencerHTTP)
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		client, err := rpc.DialContext(ctx, config.RollupSequencerHTTP)
 		cancel()
 		if err != nil {
+			log.Error("Failed to connect to rollup sequencer RPC service", "err", err)
 			return nil, err
 		}
+		log.Info("Rollup sequencer RPC service connected", "url", config.RollupSequencerHTTP)
 		eth.seqRPCService = client
 	}
 
