@@ -778,13 +778,14 @@ var (
 		Aliases:  []string{"discv4"},
 		Usage:    "Enables the V4 discovery mechanism",
 		Category: flags.NetworkingCategory,
-		Value:    true,
+		Value:    false,
 	}
 	DiscoveryV5Flag = &cli.BoolFlag{
 		Name:     "discovery.v5",
 		Aliases:  []string{"discv5"},
 		Usage:    "Enables the experimental RLPx V5 (Topic Discovery) mechanism",
 		Category: flags.NetworkingCategory,
+		Value:    true,
 	}
 	NetrestrictFlag = &cli.StringFlag{
 		Name:     "netrestrict",
@@ -1093,6 +1094,13 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 			urls = params.SepoliaBootnodes
 		case ctx.Bool(GoerliFlag.Name):
 			urls = params.GoerliBootnodes
+		case ctx.IsSet(OPNetworkFlag.Name):
+			network := ctx.String(OPNetworkFlag.Name)
+			if strings.Contains(strings.ToLower(network), "mainnet") {
+				urls = params.OPMainnetBootnodes
+			} else {
+				urls = params.OPSepoliaBootnodes
+			}
 		}
 	}
 	cfg.BootstrapNodes = mustParseBootnodes(urls)
@@ -1122,6 +1130,13 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 		urls = SplitAndTrim(ctx.String(BootnodesFlag.Name))
 	case cfg.BootstrapNodesV5 != nil:
 		return // already set, don't apply defaults.
+	case ctx.IsSet(OPNetworkFlag.Name):
+		network := ctx.String(OPNetworkFlag.Name)
+		if strings.Contains(strings.ToLower(network), "mainnet") {
+			urls = append(urls, params.OPMainnetBootnodes...)
+		} else {
+			urls = append(urls, params.OPSepoliaBootnodes...)
+		}
 	}
 
 	cfg.BootstrapNodesV5 = make([]*enode.Node, 0, len(urls))
