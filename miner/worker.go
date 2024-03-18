@@ -789,7 +789,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 	}
 	receipt, err := w.applyTransaction(env, tx)
 	if err != nil {
-		log.Debug("sequencer apply tx failed", "err", err.Error(), "txHash", tx.Hash())
+		log.Info("sequencer apply tx failed", "err", err.Error(), "txHash", tx.Hash())
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)
