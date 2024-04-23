@@ -19,7 +19,6 @@ package state
 
 import (
 	"fmt"
-	"math/big"
 	"sort"
 	"time"
 
@@ -36,6 +35,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/trie/trienode"
 	"github.com/ethereum/go-ethereum/trie/triestate"
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -291,10 +291,10 @@ func (s *StateDB) Empty(addr common.Address) bool {
 }
 
 // GetBalance retrieves the balance from the given address or 0 if object not found
-func (s *StateDB) GetBalance(addr common.Address) *big.Int {
+func (s *StateDB) GetBalance(addr common.Address) *uint256.Int {
 	key := GetRSS3BalanceKey(addr)
 	bal := s.GetState(params.RSS3Address, key)
-	return bal.Big()
+	return uint256.MustFromBig(bal.Big())
 }
 
 // GetNonce retrieves the nonce from the given address or 0 if object not found
@@ -340,10 +340,10 @@ func (s *StateDB) GetCodeSize(addr common.Address) int {
 
 func (s *StateDB) GetCodeHash(addr common.Address) common.Hash {
 	stateObject := s.getStateObject(addr)
-	if stateObject == nil {
-		return common.Hash{}
+	if stateObject != nil {
+		return common.BytesToHash(stateObject.CodeHash())
 	}
-	return common.BytesToHash(stateObject.CodeHash())
+	return common.Hash{}
 }
 
 // GetState retrieves a value from the given account's storage trie.
@@ -382,44 +382,46 @@ func (s *StateDB) HasSelfDestructed(addr common.Address) bool {
  */
 
 // AddBalance adds amount to the account associated with addr.
-func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) {
+func (s *StateDB) AddBalance(addr common.Address, amount *uint256.Int) {
 	key := GetRSS3BalanceKey(addr)
 	value := s.GetState(params.RSS3Address, key)
-	bal := value.Big()
+	bal := uint256.MustFromBig(value.Big())
 	bal = bal.Add(bal, amount)
-	s.SetState(params.RSS3Address, key, common.BigToHash(bal))
+	s.SetState(params.RSS3Address, key, common.BytesToHash(bal.Bytes()))
 }
 
 // SubBalance subtracts amount from the account associated with addr.
-func (s *StateDB) SubBalance(addr common.Address, amount *big.Int) {
+func (s *StateDB) SubBalance(addr common.Address, amount *uint256.Int) {
 	key := GetRSS3BalanceKey(addr)
 	value := s.GetState(params.RSS3Address, key)
-	bal := value.Big()
+	bal := uint256.MustFromBig(value.Big())
 	bal = bal.Sub(bal, amount)
-	s.SetState(params.RSS3Address, key, common.BigToHash(bal))
+	s.SetState(params.RSS3Address, key, common.BytesToHash(bal.Bytes()))
 }
 
-func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
+func (s *StateDB) SetBalance(addr common.Address, amount *uint256.Int) {
 	key := GetRSS3BalanceKey(addr)
-	s.SetState(params.RSS3Address, key, common.BigToHash(amount))
+	s.SetState(params.RSS3Address, key, common.BytesToHash(amount.Bytes()))
 }
+
+// SubBalance subtracts amount from the account associated with addr.
 
 func (s *StateDB) SetNonce(addr common.Address, nonce uint64) {
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetNonce(nonce)
 	}
 }
 
 func (s *StateDB) SetCode(addr common.Address, code []byte) {
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
 	}
 }
 
 func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetState(key, value)
 	}
@@ -440,7 +442,7 @@ func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common
 	if _, ok := s.stateObjectsDestruct[addr]; !ok {
 		s.stateObjectsDestruct[addr] = nil
 	}
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getOrNewStateObject(addr)
 	for k, v := range storage {
 		stateObject.SetState(k, v)
 	}
@@ -459,10 +461,10 @@ func (s *StateDB) SelfDestruct(addr common.Address) {
 	s.journal.append(selfDestructChange{
 		account:     &addr,
 		prev:        stateObject.selfDestructed,
-		prevbalance: new(big.Int).Set(stateObject.Balance()),
+		prevbalance: new(uint256.Int).Set(stateObject.Balance()),
 	})
 	stateObject.markSelfdestructed()
-	stateObject.data.Balance = new(big.Int)
+	stateObject.data.Balance = new(uint256.Int)
 }
 
 func (s *StateDB) Selfdestruct6780(addr common.Address) {
@@ -623,8 +625,8 @@ func (s *StateDB) setStateObject(object *stateObject) {
 	s.stateObjects[object.Address()] = object
 }
 
-// GetOrNewStateObject retrieves a state object or create a new state object if nil.
-func (s *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
+// getOrNewStateObject retrieves a state object or create a new state object if nil.
+func (s *StateDB) getOrNewStateObject(addr common.Address) *stateObject {
 	stateObject := s.getStateObject(addr)
 	if stateObject == nil {
 		stateObject, _ = s.createObject(addr)
