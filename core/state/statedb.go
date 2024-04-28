@@ -385,18 +385,26 @@ func (s *StateDB) HasSelfDestructed(addr common.Address) bool {
 func (s *StateDB) AddBalance(addr common.Address, amount *uint256.Int) {
 	key := GetRSS3BalanceKey(addr)
 	value := s.GetState(params.RSS3Address, key)
-	bal := uint256.MustFromBig(value.Big())
-	bal = bal.Add(bal, amount)
-	s.SetState(params.RSS3Address, key, common.BytesToHash(bal.Bytes()))
+	balance := uint256.MustFromBig(value.Big())
+	newBalance, overflow := new(uint256.Int).AddOverflow(balance, amount)
+	if overflow {
+		s.setError(fmt.Errorf("addBalance overflow, balance: %d, amount: %d", balance, amount))
+		return
+	}
+	s.SetState(params.RSS3Address, key, common.BytesToHash(newBalance.Bytes()))
 }
 
 // SubBalance subtracts amount from the account associated with addr.
 func (s *StateDB) SubBalance(addr common.Address, amount *uint256.Int) {
 	key := GetRSS3BalanceKey(addr)
 	value := s.GetState(params.RSS3Address, key)
-	bal := uint256.MustFromBig(value.Big())
-	bal = bal.Sub(bal, amount)
-	s.SetState(params.RSS3Address, key, common.BytesToHash(bal.Bytes()))
+	balance := uint256.MustFromBig(value.Big())
+	newBalance, overflow := new(uint256.Int).SubOverflow(balance, amount)
+	if overflow {
+		s.setError(fmt.Errorf("subBalance overflow, balance: %d, amount: %d", balance, amount))
+		return
+	}
+	s.SetState(params.RSS3Address, key, common.BytesToHash(newBalance.Bytes()))
 }
 
 func (s *StateDB) SetBalance(addr common.Address, amount *uint256.Int) {

@@ -1256,3 +1256,72 @@ func TestSubBalance(t *testing.T) {
 		}
 	}
 }
+
+func TestSubBalanceOverflow(t *testing.T) {
+	// Create an empty state database
+	var (
+		db  = rawdb.NewMemoryDatabase()
+		tdb = trie.NewDatabase(db, nil)
+	)
+	state, _ := New(types.EmptyRootHash, NewDatabaseWithNodeDB(db, tdb), nil)
+
+	// set balance
+	addr := common.BytesToAddress([]byte{1})
+	state.SetBalance(addr, uint256.NewInt(uint64(10)))
+
+	// sub balance
+	state.SubBalance(addr, uint256.NewInt(uint64(11)))
+
+	// Write modifications to trie.
+	root := state.IntermediateRoot(false)
+	if err := tdb.Commit(root, false); err != nil {
+		t.Errorf("can not commit trie %v to persistent database", root.Hex())
+	}
+
+	// check balance
+	balance := state.GetBalance(addr)
+	expectedBalance := uint256.NewInt(uint64(10))
+	if balance.Cmp(expectedBalance) != 0 {
+		t.Errorf("account balance mismatch: have %v, want %v", balance, expectedBalance)
+	}
+	// check error
+	if state.Error() == nil {
+		t.Errorf("SubBalance overflow expected %v", state.Error())
+	}
+	fmt.Println(state.Error())
+}
+
+func TestAddBalanceOverflow(t *testing.T) {
+	// Create an empty state database
+	var (
+		db  = rawdb.NewMemoryDatabase()
+		tdb = trie.NewDatabase(db, nil)
+	)
+	state, _ := New(types.EmptyRootHash, NewDatabaseWithNodeDB(db, tdb), nil)
+
+	// set balance
+	addr := common.BytesToAddress([]byte{1})
+	state.SetBalance(addr, uint256.NewInt(uint64(10)))
+
+	// add balance
+	amount := new(uint256.Int).SetAllOne()
+	state.AddBalance(addr, amount)
+
+	// Write modifications to trie.
+	root := state.IntermediateRoot(false)
+	if err := tdb.Commit(root, false); err != nil {
+		t.Errorf("can not commit trie %v to persistent database", root.Hex())
+	}
+
+	// check balance
+	balance := state.GetBalance(addr)
+	expectedBalance := uint256.NewInt(uint64(10))
+	if balance.Cmp(expectedBalance) != 0 {
+		t.Errorf("account balance mismatch: have %v, want %v", balance, expectedBalance)
+	}
+	// check error
+	if state.Error() == nil {
+		t.Errorf("AddBalance overflow expected %v", state.Error())
+	}
+	fmt.Println(state.Error())
+}
