@@ -28,7 +28,18 @@ var (
 	// The L1 portion of the transaction fee accumulates at this predeploy
 	OptimismL1FeeRecipient = common.HexToAddress("0x420000000000000000000000000000000000001A")
 	// The L2 RSS3 contract
-	RSS3Address = common.HexToAddress("0x4200000000000000000000000000000000000042")
+	RSS3Address               = common.HexToAddress("0x4200000000000000000000000000000000000042")
+	DeveloperListContractAddr = common.HexToAddress("0x42000000000000000000000000000000000000de")
+	// DevMappingPosition is the position of the state variable `developers`.
+	// Since the state variables are as follow:
+	//    bool public initialized;
+	//    bool public enabled;
+	//    address public admin;
+	//    address public pendingAdmin;
+	// according to [Layout of State Variables in Storage](https://docs.soliditylang.org/en/v0.8.4/internals/layout_in_storage.html),
+	// and after optimizer enabled, the `initialized`, `enabled` and `admin` will be packed, and stores at slot 0,
+	// `pendingAdmin` stores at slot 1, so the position for `developers` is 2.
+	DevMappingPosition = 2
 )
 
 const (

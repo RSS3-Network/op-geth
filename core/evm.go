@@ -17,6 +17,7 @@
 package core
 
 import (
+	"encoding/binary"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -24,8 +25,11 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+
 	"github.com/holiman/uint256"
+	"github.com/modern-go/reflect2"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -74,6 +78,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		BlobBaseFee: blobBaseFee,
 		GasLimit:    header.GasLimit,
 		Random:      random,
+		CanCreate:   GetCanCreateFn(chain),
 		L1CostFunc:  types.NewL1CostFunc(config, statedb),
 	}
 }
@@ -140,4 +145,41 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *uint256.Int) bool {
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *uint256.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
+}
+
+func GetCanCreateFn(chain ChainContext) vm.CanCreateFunc {
+	if reflect2.IsNil(chain) || chain.Engine() == nil {
+		return func(db vm.StateDB, address common.Address, height *big.Int) bool {
+			return true
+		}
+	}
+
+	return func(db vm.StateDB, address common.Address, height *big.Int) bool {
+		return CanCreate(db, address, height)
+	}
+}
+
+func CanCreate(db vm.StateDB, addr common.Address, height *big.Int) bool {
+	if isDeveloperVerificationEnabled(db) {
+		slot := calcSlotOfDevMappingKey(addr)
+		valueHash := db.GetState(params.DeveloperListContractAddr, slot)
+		// none zero value means true
+		return valueHash.Big().Sign() > 0
+	}
+	return true
+}
+
+func isDeveloperVerificationEnabled(db vm.StateDB) bool {
+	compactValue := db.GetState(params.DeveloperListContractAddr, common.Hash{})
+	// Layout of slot 0:
+	// [0   -    9][10-29][  30   ][    31     ]
+	// [zero bytes][admin][enabled][initialized]
+	enabledByte := compactValue.Bytes()[common.HashLength-2]
+	return enabledByte == 0x01
+}
+
+func calcSlotOfDevMappingKey(addr common.Address) common.Hash {
+	p := make([]byte, common.HashLength)
+	binary.BigEndian.PutUint16(p[common.HashLength-2:], uint16(params.DevMappingPosition))
+	return crypto.Keccak256Hash(addr.Bytes(), p)
 }

@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"fmt"
 	"math/big"
 	"sync/atomic"
 
@@ -36,6 +37,8 @@ type (
 	// GetHashFunc returns the n'th block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
+	// CanCreateFunc is the signature of a contract creation guard function
+	CanCreateFunc func(db StateDB, address common.Address, height *big.Int) bool
 )
 
 func (evm *EVM) precompile(addr common.Address) (PrecompiledContract, bool) {
@@ -73,6 +76,8 @@ type BlockContext struct {
 	Transfer TransferFunc
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
+	// CanCreate returns whether a given address can create a new contract
+	CanCreate CanCreateFunc
 	// L1CostFunc returns the L1 cost of the rollup message, the function may be nil, or return nil
 	L1CostFunc types.L1CostFunc
 
@@ -437,6 +442,12 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, ErrInsufficientBalance
+	}
+	// check developer if needed
+	if evm.Context.CanCreate != nil {
+		if !evm.Context.CanCreate(evm.StateDB, caller.Address(), evm.Context.BlockNumber) {
+			return nil, common.Address{}, gas, fmt.Errorf("%w: address %v", ErrUnauthorizedDeveloper, caller.Address().Hex())
+		}
 	}
 	nonce := evm.StateDB.GetNonce(caller.Address())
 	if nonce+1 < nonce {
