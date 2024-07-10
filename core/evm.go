@@ -172,9 +172,9 @@ func CanCreate(db vm.StateDB, addr common.Address, height *big.Int) bool {
 func isDeveloperVerificationEnabled(db vm.StateDB) bool {
 	compactValue := db.GetState(params.DeveloperListContractAddr, common.Hash{})
 	// Layout of slot 0:
-	// [0   -    9][10-29][  30   ][    31     ]
-	// [zero bytes][admin][enabled][initialized]
-	enabledByte := compactValue.Bytes()[common.HashLength-2]
+	// [0][1 - 31]
+	// [enabled][zero bytes]
+	enabledByte := compactValue.Bytes()[0]
 	return enabledByte == 0x01
 }
 
