@@ -489,7 +489,7 @@ func (st *StateTransition) innerTransitionDb() (*ExecutionResult, error) {
 
 	// Check if can create
 	if contractCreation && st.evm.Context.CanCreate != nil {
-		if !st.evm.Context.CanCreate(st.evm.StateDB, msg.From, st.evm.Context.BlockNumber) {
+		if !st.evm.Context.CanCreate(st.evm.StateDB, msg.From) {
 			return nil, fmt.Errorf("%w: address %v", ErrUnauthorizedDeveloper, msg.From.Hex())
 		}
 	}

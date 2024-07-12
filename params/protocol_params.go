@@ -37,7 +37,7 @@ var (
 	// according to [Layout of State Variables in Storage](https://docs.soliditylang.org/en/v0.8.4/internals/layout_in_storage.html),
 	// and after optimizer enabled, `enabled`  will be packed, and stores at slot 0,
 	// `_developers` stores at slot 1.
-	DevMappingPosition = 1
+	DevMappingPosition = big.NewInt(1)
 )
 
 const (

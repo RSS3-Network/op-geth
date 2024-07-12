@@ -17,7 +17,7 @@
 package core
 
 import (
-	"encoding/binary"
+	"golang.org/x/crypto/sha3"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -25,7 +25,6 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/holiman/uint256"
@@ -149,17 +148,17 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *uint256.I
 
 func GetCanCreateFn(chain ChainContext) vm.CanCreateFunc {
 	if reflect2.IsNil(chain) || chain.Engine() == nil {
-		return func(db vm.StateDB, address common.Address, height *big.Int) bool {
+		return func(db vm.StateDB, address common.Address) bool {
 			return true
 		}
 	}
 
-	return func(db vm.StateDB, address common.Address, height *big.Int) bool {
-		return CanCreate(db, address, height)
+	return func(db vm.StateDB, address common.Address) bool {
+		return CanCreate(db, address)
 	}
 }
 
-func CanCreate(db vm.StateDB, addr common.Address, height *big.Int) bool {
+func CanCreate(db vm.StateDB, addr common.Address) bool {
 	if isDeveloperVerificationEnabled(db) {
 		slot := calcSlotOfDevMappingKey(addr)
 		valueHash := db.GetState(params.DeveloperListContractAddr, slot)
@@ -179,7 +178,9 @@ func isDeveloperVerificationEnabled(db vm.StateDB) bool {
 }
 
 func calcSlotOfDevMappingKey(addr common.Address) common.Hash {
-	p := make([]byte, common.HashLength)
-	binary.BigEndian.PutUint16(p[common.HashLength-2:], uint16(params.DevMappingPosition))
-	return crypto.Keccak256Hash(addr.Bytes(), p)
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write(common.LeftPadBytes(addr.Bytes(), 32))
+	hasher.Write(common.LeftPadBytes(params.DevMappingPosition.Bytes(), 32))
+	digest := hasher.Sum(nil)
+	return common.BytesToHash(digest)
 }
