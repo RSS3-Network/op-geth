@@ -458,7 +458,10 @@ func (s *StateDB) AddBalance(addr common.Address, amount *uint256.Int, reason tr
 	key := GetRSS3BalanceKey(addr)
 	value := s.GetState(params.RSS3Address, key)
 	balance := uint256.MustFromBig(value.Big())
-	newBalance := new(uint256.Int).Add(balance, amount)
+	newBalance, overflow := new(uint256.Int).AddOverflow(balance, amount)
+	if overflow {
+		s.setError(fmt.Errorf("AddBalance overflow"))
+	}
 
 	s.SetState(params.RSS3Address, key, common.BytesToHash(newBalance.Bytes()))
 
@@ -470,7 +473,10 @@ func (s *StateDB) SubBalance(addr common.Address, amount *uint256.Int, reason tr
 	key := GetRSS3BalanceKey(addr)
 	value := s.GetState(params.RSS3Address, key)
 	balance := uint256.MustFromBig(value.Big())
-	newBalance := new(uint256.Int).Sub(balance, amount)
+	newBalance, overflow := new(uint256.Int).SubOverflow(balance, amount)
+	if overflow {
+		s.setError(fmt.Errorf("SubBalance overflow"))
+	}
 	s.SetState(params.RSS3Address, key, common.BytesToHash(newBalance.Bytes()))
 	return *newBalance
 }
