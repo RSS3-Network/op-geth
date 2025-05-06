@@ -73,9 +73,10 @@ func (bc *testBlockChain) Config() *params.ChainConfig {
 
 func (bc *testBlockChain) CurrentBlock() *types.Header {
 	return &types.Header{
-		Number:   new(big.Int),
-		GasLimit: bc.gasLimit,
-		BaseFee:  big.NewInt(params.InitialBaseFee),
+		Number:     new(big.Int),
+		GasLimit:   bc.gasLimit,
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: common.Big0,
 	}
 }
 
@@ -188,7 +189,7 @@ func TestRejectedConditionalTx(t *testing.T) {
 	tx.SetConditional(&types.TransactionConditional{TimestampMax: uint64Ptr(timestamp - 1)})
 
 	// 1 pending tx (synchronously, it has to be there before it can be rejected)
-	miner.txpool.Add(types.Transactions{tx}, true, true)
+	miner.txpool.Add(types.Transactions{tx}, true)
 	if !miner.txpool.Has(tx.Hash()) {
 		t.Fatalf("conditional tx is not in the mempool")
 	}

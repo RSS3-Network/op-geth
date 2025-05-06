@@ -5,7 +5,7 @@ footer: |
 base:
   name: go-ethereum
   url: https://github.com/ethereum/go-ethereum
-  hash: f0e8a3e9c8a59ce3c97c2f474eee7a1e86544e8d # between v1.14.12 <> v1.14.13/v1.15
+  hash: 612c9e0f4ae483f180ef96ace86effec6dc9bb0e # v1.15.3
 fork:
   name: op-geth
   url: https://github.com/ethereum-optimism/op-geth
@@ -122,12 +122,19 @@ def:
             This also includes experimental support for interop executing-messages to be verified through an RPC.
           globs:
             - "miner/*"
-        - title: "Tx-pool tx cost updates"
-          description: |
-            Transaction queueing and inclusion needs to account for the L1 cost component.
-          globs:
-            - "core/txpool/**/*"
-            - "core/txpool/legacypool/*"
+        - title: "Tx-pool"
+          sub:
+            - title: "Full Tx-pool journaling"
+              description: |
+                Adds support for full tx-pool journaling via the journalremotes config flag.
+              globs:
+                - "core/txpool/locals/pool_journaler.go"
+            - title: "Transaction cost updates"
+              description: |
+                Transaction queueing and inclusion needs to account for the L1 cost component.
+              globs:
+                - "core/txpool/**/*"
+                - "core/txpool/legacypool/*"
         - title: "RIP-7212"
           description: ""
           globs:
@@ -263,6 +270,10 @@ def:
           globs:
             - "internal/ethapi/api.go"
             - "rpc/errors.go"
+        - title: eth_simulateV1 API fix
+          description: Add deposit-nonce tx metadata to results of `eth_simulateV1` API to match rpc block format.
+          globs:
+            - "internal/ethapi/simulate.go"
         - title: Tracer RPC daisy-chain
           description: Forward pre-bedrock tracing calls to legacy node.
           globs:
