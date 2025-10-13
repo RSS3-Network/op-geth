@@ -76,7 +76,7 @@ jobs:
         with:
           images: |
             rss3/op-geth
-            ${{ github.repository }}
+            ghcr.io/${{ github.repository }}
             container-registry.us-east-1.cr.aliyuncs.com/rss3/op-geth
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
