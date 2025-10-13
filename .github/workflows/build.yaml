@@ -39,6 +39,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - uses: aliyun/configure-aliyun-credentials-action@v1
+        id: aliyun-auth
+        with:
+          role-to-assume: "acs:ram::5621254376179407:role/docker"
+          oidc-provider-arn: "acs:ram::5621254376179407:oidc-provider/github"
+          role-session-name: "github-action-session"
+          role-session-expiration: 1800
+          audience: "sts.aliyuncs.com"
+
       - name: setup aliyun cli
         uses: aliyun/setup-aliyun-cli-action@v1
 
